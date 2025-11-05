@@ -1,0 +1,67 @@
+# === CodeIgniter ===
+/application/cache/*
+!/application/cache/index.html
+/application/logs/*
+!/application/logs/index.html
+/writable/cache/*
+!/writable/cache/index.html
+/writable/logs/*
+!/writable/logs/index.html
+/writable/session/*
+!/writable/session/index.html
+/writable/uploads/*
+!/writable/uploads/index.html
+
+# === Environment Files ===
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+
+# === Vendor (Composer) ===
+/vendor/
+
+# === System Directory (si usas el core separado) ===
+/system/
+
+# === Composer ===
+composer.lock
+composer.phar
+
+# === IDEs & Editors ===
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# === OS files ===
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+Icon?
+
+# === Logs ===
+*.log
+
+# === Temporary & backup files ===
+*.bak
+*.tmp
+*.swp
+*.swo
+*.orig
+
+# === Node / Frontend build (si usas algo de JS) ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+
+# === Miscellaneous ===
+*.zip
+*.tar
+*.tar.gz
+*.tgz
