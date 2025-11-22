@@ -48,10 +48,15 @@ class PacientesController extends ResourceController
     {
         if (!userCan($this->request, 'PACIENTES', 'CREATE'))
             return $this->failForbidden("No puedes registrar pacientes.");
-
+    
         $json = $this->request->getJSON(true);
-
+    
+        if (!$json)
+            return $this->failValidationErrors("El JSON enviado es inválido o está vacío.");
+    
+        // ================================
         // 1. Insertar PERSONA
+        // ================================
         $personas = new PersonasModel();
         $perId = $personas->insert([
             'per_tipo_documento_id' => $json['tipo_documento_id'],
@@ -67,50 +72,62 @@ class PacientesController extends ResourceController
             'per_nacionalidad'      => $json['nacionalidad'],
             'per_estado'            => 'ACTIVO'
         ]);
-
-        // 2. Insertar PACIENTE (pac_id = per_id)
+            
+        if (!$perId)
+            return $this->failServerError("Error al registrar los datos de la persona.");
+    
+        // ================================
+        // 2. Insertar PACIENTE (solo 1 insert)
+        // ================================
         $pacientes = new PacientesModel();
         $pacientes->insert([
-            'pac_id'                  => $perId,
-            'pac_lugar_nac_dep'       => $json['lugar_nac_dep'],
-            'pac_lugar_nac_prov'      => $json['lugar_nac_prov'],
-            'pac_lugar_nac_dist'      => $json['lugar_nac_dist'],
-            'pac_departamento'        => $json['departamento'],
-            'pac_provincia'           => $json['provincia'],
-            'pac_distrito'            => $json['distrito'],
-            'pac_direccion'           => $json['direccion'],
-            'pac_celular_emergencia'  => $json['celular_emergencia'],
-            'pac_nombre_emergencia'   => $json['nombre_emergencia'],
+            'pac_id'                    => $perId,
+            'pac_lugar_nac_dep'         => $json['lugar_nac_dep'],
+            'pac_lugar_nac_prov'        => $json['lugar_nac_prov'],
+            'pac_lugar_nac_dist'        => $json['lugar_nac_dist'],
+            'pac_departamento'          => $json['departamento'],
+            'pac_provincia'             => $json['provincia'],
+            'pac_distrito'              => $json['distrito'],
+            'pac_direccion'             => $json['direccion'],
+            'pac_celular_emergencia'    => $json['celular_emergencia'],
+            'pac_nombre_emergencia'     => $json['nombre_emergencia'],
             'pac_parentesco_emergencia' => $json['parentesco_emergencia'],
-            'pac_ocupacion'           => $json['ocupacion'],
-            'pac_observaciones'       => $json['observaciones']
+            'pac_ocupacion'             => $json['ocupacion'],
+            'pac_observaciones'         => $json['observaciones'],
         ]);
-
+    
         return $this->respondCreated([
-            'message' => 'Paciente registrado exitosamente',
-            'pac_id'  => $perId
+            'message'  => 'Paciente registrado exitosamente',
+            'pac_id'   => $perId
         ]);
     }
-
+    
+    
+    
     // ============================================
-    // ACTUALIZAR
+    // UPDATE
     // ============================================
     public function update($id = null)
     {
         if (!userCan($this->request, 'PACIENTES', 'UPDATE'))
             return $this->failForbidden("No puedes editar pacientes.");
-
+    
         $json = $this->request->getJSON(true);
-
+    
+        if (!$json)
+            return $this->failValidationErrors("El JSON enviado es inválido o está vacío.");
+    
         $model = new PacientesModel();
-        $pac = $model->getPacienteById($id);
-
-        if (!$pac)
+        $paciente = $model->getPacienteById($id);
+    
+        if (!$paciente)
             return $this->failNotFound("Paciente no encontrado.");
-
+    
+        // ================================
         // 1. Actualizar PERSONA
-        $pers = new PersonasModel();
-        $pers->update($id, [
+        // ================================
+        $personas = new PersonasModel();
+        $personas->update($id, [
             'per_tipo_documento_id' => $json['tipo_documento_id'],
             'per_numero_documento'  => $json['numero_documento'],
             'per_nombres'           => $json['nombres'],
@@ -123,27 +140,30 @@ class PacientesController extends ResourceController
             'per_estado_civil'      => $json['estado_civil'],
             'per_nacionalidad'      => $json['nacionalidad']
         ]);
-
+    
+        // ================================
         // 2. Actualizar PACIENTE
+        // ================================
         $model->update($id, [
-            'pac_lugar_nac_dep'       => $json['lugar_nac_dep'],
-            'pac_lugar_nac_prov'      => $json['lugar_nac_prov'],
-            'pac_lugar_nac_dist'      => $json['lugar_nac_dist'],
-            'pac_departamento'        => $json['departamento'],
-            'pac_provincia'           => $json['provincia'],
-            'pac_distrito'            => $json['distrito'],
-            'pac_direccion'           => $json['direccion'],
-            'pac_celular_emergencia'  => $json['celular_emergencia'],
-            'pac_nombre_emergencia'   => $json['nombre_emergencia'],
-            'pac_parentesco_emergencia'=> $json['parentesco_emergencia'],
-            'pac_ocupacion'           => $json['ocupacion'],
-            'pac_observaciones'       => $json['observaciones']
+            'pac_lugar_nac_dep'         => $json['lugar_nac_dep'],
+            'pac_lugar_nac_prov'        => $json['lugar_nac_prov'],
+            'pac_lugar_nac_dist'        => $json['lugar_nac_dist'],
+            'pac_departamento'          => $json['departamento'],
+            'pac_provincia'             => $json['provincia'],
+            'pac_distrito'              => $json['distrito'],
+            'pac_direccion'             => $json['direccion'],
+            'pac_celular_emergencia'    => $json['celular_emergencia'],
+            'pac_nombre_emergencia'     => $json['nombre_emergencia'],
+            'pac_parentesco_emergencia' => $json['parentesco_emergencia'],
+            'pac_ocupacion'             => $json['ocupacion'],
+            'pac_observaciones'         => $json['observaciones']
         ]);
-
+    
         return $this->respond([
             'message' => 'Paciente actualizado exitosamente'
         ]);
     }
+    
 
     // ============================================
     // ELIMINACIÓN LÓGICA

@@ -8,6 +8,7 @@ class PacientesModel extends Model
 {
     protected $table      = 'pacientes';
     protected $primaryKey = 'pac_id';
+    protected $useAutoIncrement = false; 
 
     protected $allowedFields = [
         'pac_lugar_nac_dep',
