@@ -6,8 +6,6 @@ services:
     container_name: codeigniter_api
     restart: always
     ports:
-      - "8080:80"
-    volumes:
-      - .:/var/www/html
+      - "80:80"
     environment:
-      - CI_ENVIRONMENT=production
+      - CI_ENVIRONMENT=development
