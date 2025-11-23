@@ -201,17 +201,13 @@ class PacientesController extends ResourceController
             return $this->failNotFound("Paciente no encontrado.");
         }
 
-        // 2. Verificar si YA está eliminado
-        if ($pac['per_estado'] === 'INACTIVO' || $pac['pac_estado'] === 'INACTIVO') {
+        // 2. Verificar si YA está eliminado (solo paciente)
+        if ($pac['pac_estado'] === 'INACTIVO') {
             return $this->failResourceGone("El paciente ya está eliminado.");
         }
 
-        // 3. Marcar PERSONA como INACTIVO
-        $modelPer->update($id, [
-            'per_estado' => 'INACTIVO'
-        ]);
-
-        // 4. Marcar PACIENTE como INACTIVO
+        // 3. Marcar SOLO PACIENTE como INACTIVO
+        //    No tocar personas.per_estado porque podría ser médico o usuario activo.
         $modelPac->update($id, [
             'pac_estado' => 'INACTIVO'
         ]);
@@ -221,6 +217,4 @@ class PacientesController extends ResourceController
             'paciente_eliminado' => $id
         ]);
     }
-
-
 }
