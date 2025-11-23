@@ -8,8 +8,10 @@ class MedicosModel extends Model
 {
     protected $table      = 'medicos';
     protected $primaryKey = 'med_id';
+    protected $useAutoIncrement = false;
 
     protected $allowedFields = [
+        'med_id',
         'med_profesion',
         'med_colegiatura',
         'med_habilitacion',
