@@ -3,6 +3,10 @@
 namespace App\Controllers;
 
 use CodeIgniter\RESTful\ResourceController;
+use App\Models\RolesModel;
+use App\Models\ModulosModel;
+use App\Models\PermisosModel;
+use App\Models\RolesAccesosModel;
 use App\Models\RolesModulosPermisosModel;
 use App\Models\UsuariosRolesModel;
 
@@ -10,34 +14,107 @@ class SeguridadController extends ResourceController
 {
     protected $format = 'json';
 
-    public function permisosPorRol($rol_id)
+    // ======================================
+    // LISTAR ROLES
+    // ======================================
+    public function listarRoles()
+    {
+        $model = new RolesModel();
+        return $this->respond(
+            $model->where('rol_estado', 'ACTIVO')->findAll()
+        );
+    }
+
+    // ======================================
+    // LISTAR MÓDULOS
+    // ======================================
+    public function listarModulos()
+    {
+        $model = new ModulosModel();
+        return $this->respond($model->where('mo_estado', 'ACTIVO')->findAll());
+    }
+
+    // ======================================
+    // LISTAR PERMISOS (READ, CREATE, UPDATE, DELETE)
+    // ======================================
+    public function listarPermisos()
+    {
+        $model = new PermisosModel();
+        return $this->respond($model->findAll());
+    }
+
+    // ======================================
+    // LISTAR ACCESOS (ROL + MÓDULOS)
+    // ======================================
+    public function listarAccesosRol($rol_id)
+    {
+        $model = new RolesAccesosModel();
+
+        return $this->respond(
+            $model->where('rol_id', $rol_id)
+                  ->where('ra_estado', 'ACTIVO')
+                  ->findAll()
+        );
+    }
+
+    // ======================================
+    // LISTAR PERMISOS (POR RA_ID)
+    // ======================================
+    public function permisosPorAcceso($ra_id)
     {
         $model = new RolesModulosPermisosModel();
 
-        $data = $model->where('rol_id', $rol_id)->findAll();
-
-        return $this->respond($data);
+        return $this->respond(
+            $model->where('ra_id', $ra_id)
+                  ->where('rmp_estado', 'ACTIVO')
+                  ->findAll()
+        );
     }
 
-    public function listarRoles()
+    // ======================================
+    // ASIGNAR PERMISO A UN ACCESO (ra_id + per_id)
+    // ======================================
+    public function asignarPermisosRol($ra_id)
     {
-        $rolesModel = new \App\Models\RolesModel();
+        $json = $this->request->getJSON(true);
 
-        $roles = $rolesModel->where('rol_estado', 'ACTIVO')->findAll();
+        if (!isset($json['per_id']))
+            return $this->failValidationError("Debe enviar per_id.");
 
-        return $this->respond($roles);
+        $per_id = $json['per_id'];
+        $model = new RolesModulosPermisosModel();
+
+        // Evitar duplicados
+        $existe = $model
+            ->where('ra_id', $ra_id)
+            ->where('per_id', $per_id)
+            ->where('rmp_estado', 'ACTIVO')
+            ->first();
+
+        if ($existe)
+            return $this->failResourceExists("Ese permiso ya está asignado para este acceso.");
+
+        // Insertar
+        $model->insert([
+            'ra_id' => $ra_id,
+            'per_id' => $per_id,
+            'rmp_estado' => 'ACTIVO'
+        ]);
+
+        return $this->respondCreated([
+            "message" => "Permiso asignado correctamente."
+        ]);
     }
 
-    public function rolesPorUsuario($usu_id = null)
+    // ======================================
+    // ROLES POR USUARIO
+    // ======================================
+    public function rolesPorUsuario($usu_id)
     {
-        if ($usu_id === null)
-            return $this->failValidationError("Debes enviar el ID del usuario.");
+        $model = new UsuariosRolesModel();
+        $rolesModel = new RolesModel();
 
-        $usuariosRoles = new \App\Models\UsuariosRolesModel();
-        $rolesModel = new \App\Models\RolesModel();
-
-        // Obtener los IDs de los roles asignados
-        $asignados = $usuariosRoles
+        $asignados = $model
             ->where('usu_id', $usu_id)
             ->where('ur_estado', 'ACTIVO')
             ->findAll();
@@ -48,53 +125,90 @@ class SeguridadController extends ResourceController
                 "roles" => []
             ]);
 
-        // Extraer solo los IDs
         $rolesIds = array_column($asignados, 'rol_id');
 
-        // Obtener detalles de cada rol
+        return $this->respond(
+            $rolesModel->whereIn('rol_id', $rolesIds)->findAll()
+        );
+    }
+
+    // ======================================
+    // ASIGNAR ROL A USUARIO
+    // ======================================
+    public function asignarRolesUsuario($usu_id)
+    {
+        $json = $this->request->getJSON(true);
+
+        if (!isset($json['rol_id']))
+            return $this->failValidationError("Debe enviar rol_id.");
+
+        $rol_id = $json['rol_id'];
+        $model = new UsuariosRolesModel();
+
+        $existe = $model
+            ->where('usu_id', $usu_id)
+            ->where('rol_id', $rol_id)
+            ->where('ur_estado', 'ACTIVO')
+            ->first();
+
+        if ($existe)
+            return $this->failResourceExists("El usuario ya tiene este rol.");
+
+        $model->insert([
+            'usu_id' => $usu_id,
+            'rol_id' => $rol_id,
+            'ur_estado' => 'ACTIVO'
+        ]);
+
+        return $this->respondCreated([
+            "message" => "Rol asignado correctamente.",
+            "usuario" => $usu_id,
+            "rol_asignado" => $rol_id
+        ]);
+    }
+
+    // ======================================
+    // PERMISOS FINALES POR USUARIO
+    // ======================================
+    public function permisosPorUsuario($usu_id)
+    {
+        $rolesModel = new UsuariosRolesModel();
+        $rmp = new RolesModulosPermisosModel();
+        $ra = new RolesAccesosModel();
+
+        // Roles asignados
         $roles = $rolesModel
-            ->whereIn('rol_id', $rolesIds)
+            ->where('usu_id', $usu_id)
+            ->where('ur_estado', 'ACTIVO')
             ->findAll();
 
-        return $this->respond($roles);
+        if (!$roles)
+            return $this->respond([
+                "message" => "El usuario no tiene roles asignados.",
+                "permisos" => []
+            ]);
+
+        // Extraer IDs de roles
+        $rolesIds = array_column($roles, 'rol_id');
+
+        // Obtener accesos (ra_id) de esos roles
+        $accesos = $ra
+            ->whereIn('rol_id', $rolesIds)
+            ->where('ra_estado', 'ACTIVO')
+            ->findAll();
+
+        $raIds = array_column($accesos, 'ra_id');
+
+        // Obtener permisos finales del usuario
+        $permisos = $rmp
+            ->whereIn('ra_id', $raIds)
+            ->where('rmp_estado', 'ACTIVO')
+            ->findAll();
+
+        return $this->respond([
+            "usuario" => $usu_id,
+            "accesos" => $accesos,
+            "permisos" => $permisos
+        ]);
     }
-
-    public function asignarRolesUsuario($usuarioId = null)
-{
-    $json = $this->request->getJSON(true);
-
-    if (!$json || !isset($json['rol_id']))
-        return $this->failValidationError("Debes enviar rol_id.");
-
-    $rolId = $json['rol_id'];
-
-    $usuarioRolModel = new UsuariosRolesModel();
-
-    // ¿Ya está asignado?
-    $existe = $usuarioRolModel
-        ->where('usu_id', $usuarioId)
-        ->where('rol_id', $rolId)
-        ->where('ur_estado', 'ACTIVO')
-        ->first();
-
-    if ($existe) {
-        return $this->failResourceExists("El usuario ya tiene este rol.");
-    }
-
-    // Asignar rol
-    $usuarioRolModel->insert([
-        'usu_id' => $usuarioId,
-        'rol_id' => $rolId,
-        'ur_estado' => 'ACTIVO'
-    ]);
-
-    return $this->respondCreated([
-        "message" => "Rol asignado correctamente",
-        "usuario" => $usuarioId,
-        "rol_asignado" => $rolId
-    ]);
-}
-
-
-
 }
