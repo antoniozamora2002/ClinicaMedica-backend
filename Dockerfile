@@ -15,6 +15,12 @@ COPY . /var/www/html
 # Establecer permisos correctos
 RUN chown -R www-data:www-data /var/www/html/writable
 
+RUN apt-get update && apt-get install -y \
+    unzip \
+    libzip-dev \
+    libicu-dev \
+    && docker-php-ext-install mysqli pdo pdo_mysql zip intl
+
 # Configuración de Apache
 COPY ./apache.conf /etc/apache2/sites-available/000-default.conf
 
