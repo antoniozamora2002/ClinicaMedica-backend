@@ -9,6 +9,7 @@
 
 # No subir configuraciones sensibles
 app/Config/Database.php
+app/Config/App.php
 app/Config/Email.php
 app/Config/Encryption.php
 app/Config/Filters.php
