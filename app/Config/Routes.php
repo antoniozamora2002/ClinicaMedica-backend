@@ -68,4 +68,7 @@ $routes->group('triaje', ['filter' => 'jwt'], function($routes){
     $routes->get('clasificaciones', 'TriajeController::clasificaciones'); // Listar clasificaciones de triaje
 });
 
+$routes->options('(:any)', function () {
+    return service('response')->setStatusCode(200);
+});
 

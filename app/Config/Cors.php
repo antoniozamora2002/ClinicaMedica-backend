@@ -25,15 +25,11 @@ class Cors extends BaseConfig
      *  }
      */
     public array $default = [
-        'allowedOrigins' => ['*'],  // Permite cualquier dominio
+        'allowedOrigins' => ['*'],
         'allowedOriginsPatterns' => [],
     
         'supportsCredentials' => false,
     
-        // Métodos permitidos
-        'allowedMethods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    
-        // Headers permitidos
         'allowedHeaders' => [
             'Origin',
             'X-Requested-With',
@@ -42,10 +38,17 @@ class Cors extends BaseConfig
             'Authorization',
         ],
     
-        // Headers que expones (opcional)
         'exposedHeaders' => [],
     
-        'maxAge' => 7200,
-    ];
+        'allowedMethods' => [
+            'GET',
+            'POST',
+            'PUT',
+            'PATCH',
+            'DELETE',
+            'OPTIONS'
+        ],
     
+        'maxAge' => 7200,
+    ];    
 }
