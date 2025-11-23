@@ -52,4 +52,37 @@ class PacientesModel extends Model
             ->where('pacientes.pac_id', $id)
             ->first();
     }
+
+    // ============================================
+    // BUSCAR POR DOCUMENTO
+    // ============================================
+    public function buscarPorDocumento($numeroDocumento)
+    {
+        return $this->select('personas.*, pacientes.*')
+            ->join('personas', 'personas.per_id = pacientes.pac_id')
+            ->where('personas.per_numero_documento', $numeroDocumento)
+            ->where('pacientes.pac_estado', 'ACTIVO')
+            ->first();
+    }
+
+    // ============================================
+    // BUSCAR POR APELLIDOS (PARCIAL O COMPLETO)
+    // ============================================
+    public function buscarPorApellidos($apellidoPaterno = null, $apellidoMaterno = null)
+    {
+        $builder = $this->select('personas.*, pacientes.*')
+            ->join('personas', 'personas.per_id = pacientes.pac_id')
+            ->where('pacientes.pac_estado', 'ACTIVO');
+
+        if ($apellidoPaterno) {
+            $builder->like('personas.per_apellido_paterno', $apellidoPaterno);
+        }
+
+        if ($apellidoMaterno) {
+            $builder->like('personas.per_apellido_materno', $apellidoMaterno);
+        }
+
+        return $builder->findAll();
+    }
+
 }

@@ -9,27 +9,38 @@ $routes->get('/', 'Home::index');
 $routes->get('prueba', 'Prueba::index');
 
 // Rutas API
-$routes->group('seguridad', params: function($routes) {
-    // Ruta para login
-    $routes->post('login', 'AuthController::login'); // Generar JWT
 
-    // Ruta para crear un nuevo usuario
-    $routes->post('register', 'AuthController::create'); // Crear usuario
-    $routes->get('permisos-rol/(:num)', 'SeguridadController::permisosPorRol/$1');
+// Rutas de seguridad
+$routes->group('seguridad', function($routes) {
 
-     // === ROLES ===
-   $routes->get('roles', 'SeguridadController::listarRoles'); 
-   $routes->get('roles/(:num)/permisos', 'SeguridadController::permisosPorRol/$1');
-   $routes->post('roles/(:num)/permisos', 'SeguridadController::asignarPermisosRol/$1');
+    // === LOGIN / REGISTRO ===
+    $routes->post('login', 'AuthController::login');
+    $routes->post('register', 'AuthController::create');
 
-   // === USUARIOS-ROLES ===
-   $routes->get('usuarios/(:num)/roles', 'SeguridadController::rolesPorUsuario/$1');
-   $routes->post('usuarios/(:num)/roles', 'SeguridadController::asignarRolesUsuario/$1');
+    // === ROLES ===
+    $routes->get('roles', 'SeguridadController::listarRoles');
 
-   // === USUARIOS-PERMISOS (resultado final) ===
-   $routes->get('usuarios/(:num)/permisos', 'SeguridadController::permisosPorUsuario/$1');
+    // === ACCESOS (ROL → MODULOS) ===
+    $routes->get('roles/(:num)/accesos', 'SeguridadController::listarAccesosRol/$1');
+
+    // === PERMISOS POR ACCESO (ra_id) ===
+    $routes->get('accesos/(:num)/permisos', 'SeguridadController::permisosPorAcceso/$1');
+
+    // === ASIGNAR PERMISOS A UN ACCESO ===
+    $routes->post('accesos/(:num)/permisos', 'SeguridadController::asignarPermisosRol/$1');
+
+    // === USUARIOS-ROLES ===
+    $routes->get('usuarios/(:num)/roles', 'SeguridadController::rolesPorUsuario/$1');
+    $routes->post('usuarios/(:num)/roles', 'SeguridadController::asignarRolesUsuario/$1');
+
+    // === PERMISOS FINALES DEL USUARIO ===
+    $routes->get('usuarios/(:num)/permisos', 'SeguridadController::permisosPorUsuario/$1');
+
+    //Quitar rol a un usuario
+    $routes->post('usuarios/(:num)/roles/quitar', 'SeguridadController::quitarRolUsuario/$1');
 
 });
+
 
 // Rutas protegidas por JWT
 $routes->group('pacientes', ['filter' => 'jwt'], function($routes){
@@ -37,6 +48,8 @@ $routes->group('pacientes', ['filter' => 'jwt'], function($routes){
     $routes->post('/', 'PacientesController::create');     // Crear paciente
     $routes->put('(:num)', 'PacientesController::update/$1'); // Actualizar paciente
     $routes->delete('(:num)', 'PacientesController::delete/$1'); // Eliminar paciente
+    $routes->get('buscar/documento', 'PacientesController::buscarPorDocumento');
+    $routes->get('buscar/apellidos', 'PacientesController::buscarPorApellidos');
 
 });
 
