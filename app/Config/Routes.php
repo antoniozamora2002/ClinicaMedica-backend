@@ -15,6 +15,20 @@ $routes->group('seguridad', params: function($routes) {
 
     // Ruta para crear un nuevo usuario
     $routes->post('register', 'AuthController::create'); // Crear usuario
+    $routes->get('permisos-rol/(:num)', 'SeguridadController::permisosPorRol/$1');
+
+     // === ROLES ===
+   $routes->get('roles', 'SeguridadController::listarRoles'); 
+   $routes->get('roles/(:num)/permisos', 'SeguridadController::permisosPorRol/$1');
+   $routes->post('roles/(:num)/permisos', 'SeguridadController::asignarPermisosRol/$1');
+
+   // === USUARIOS-ROLES ===
+   $routes->get('usuarios/(:num)/roles', 'SeguridadController::rolesPorUsuario/$1');
+   $routes->post('usuarios/(:num)/roles', 'SeguridadController::asignarRolesUsuario/$1');
+
+   // === USUARIOS-PERMISOS (resultado final) ===
+   $routes->get('usuarios/(:num)/permisos', 'SeguridadController::permisosPorUsuario/$1');
+
 });
 
 // Rutas protegidas por JWT
@@ -23,6 +37,7 @@ $routes->group('pacientes', ['filter' => 'jwt'], function($routes){
     $routes->post('/', 'PacientesController::create');     // Crear paciente
     $routes->put('(:num)', 'PacientesController::update/$1'); // Actualizar paciente
     $routes->delete('(:num)', 'PacientesController::delete/$1'); // Eliminar paciente
+
 });
 
 // Rutas de médicos
@@ -52,3 +67,5 @@ $routes->group('triaje', ['filter' => 'jwt'], function($routes){
     $routes->get('(:num)', 'TriajeController::show/$1'); // Obtener triaje por consulta
     $routes->get('clasificaciones', 'TriajeController::clasificaciones'); // Listar clasificaciones de triaje
 });
+
+
