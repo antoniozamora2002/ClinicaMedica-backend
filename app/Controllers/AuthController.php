@@ -63,7 +63,7 @@ class AuthController extends ResourceController
             return $this->respond(["status" => 400, "message" => "Faltan credenciales"], 400);
         }
 
-        // Buscar usuario
+        // === 1. Validar usuario ===
         $user = $this->db->table("usuarios")
             ->where("usu_login", $usuario)
             ->where("usu_estado", "ACTIVO")
@@ -75,58 +75,62 @@ class AuthController extends ResourceController
 
         $userId = $user->usu_id;
 
-        // ===============================================
-        // 1️⃣ Obtener roles del usuario
-        // ===============================================
+        // ============================================================
+        // 2. ROLES DEL USUARIO
+        // ============================================================
         $rolesQuery = $this->db->table("usuarios_roles ur")
-            ->select("r.rol_nombre")
+            ->select("r.rol_nombre, r.rol_id")
             ->join("roles r", "r.rol_id = ur.rol_id")
             ->where("ur.usu_id", $userId)
             ->where("ur.ur_estado", "ACTIVO")
             ->get()->getResultArray();
 
         $roles = array_column($rolesQuery, "rol_nombre");
+        $rolesIds = array_column($rolesQuery, "rol_id");
 
-        // ===============================================
-        // 2️⃣ Obtener módulos del usuario
-        // ===============================================
-        $modulosQuery = $this->db->table("usuarios_roles ur")
-            ->select("m.mo_nombre")
-            ->join("roles_accesos ra", "ra.rol_id = ur.rol_id")
+        // ============================================================
+        // 3. MODULOS PERMITIDOS (roles_accesos)
+        // ============================================================
+        $modulosQuery = $this->db->table("roles_accesos ra")
+            ->select("m.mo_id, m.mo_nombre")
             ->join("modulos m", "m.mo_id = ra.mo_id")
-            ->where("ur.usu_id", $userId)
+            ->whereIn("ra.rol_id", $rolesIds)
+            ->where("ra.ra_estado", "ACTIVO")
             ->get()->getResultArray();
 
         $modulos = array_unique(array_column($modulosQuery, "mo_nombre"));
+        $modulosIds = array_unique(array_column($modulosQuery, "mo_id"));
 
-        // ===============================================
-        // 3️⃣ Obtener permisos CRUD por módulo
-        // ===============================================
+        // ============================================================
+        // 4. PERMISOS CRUD POR MÓDULO
+        // ============================================================
         $permisos = [];
 
-        foreach ($modulos as $modulo) {
-            $permQuery = $this->db->table("usuarios_roles ur")
+        foreach ($modulosQuery as $mod) {
+
+            $permQuery = $this->db->table("roles_accesos ra")
                 ->select("m.mo_nombre, p.per_nombre")
-                ->join("roles_accesos ra", "ra.rol_id = ur.rol_id")
                 ->join("modulos m", "m.mo_id = ra.mo_id")
-                ->join("roles_modulos_permisos rmp", "rmp.rol_id = ur.rol_id AND rmp.mo_id = m.mo_id")
+                ->join("roles_modulos_permisos rmp", "rmp.ra_id = ra.ra_id")
                 ->join("permisos p", "p.per_id = rmp.per_id")
-                ->where("ur.usu_id", $userId)
-                ->where("m.mo_nombre", $modulo)
+                ->where("ra.mo_id", $mod["mo_id"])
+                ->whereIn("ra.rol_id", $rolesIds)
+                ->where("ra.ra_estado", "ACTIVO")
+                ->where("rmp.rmp_estado", "ACTIVO")
                 ->get()->getResultArray();
 
             foreach ($permQuery as $row) {
-                $permisos[$modulo][] = $row["per_nombre"];
+                $permisos[$mod["mo_nombre"]][] = $row["per_nombre"];
             }
 
-            if (!empty($permisos[$modulo])) {
-                $permisos[$modulo] = array_unique($permisos[$modulo]);
+            if (isset($permisos[$mod["mo_nombre"]])) {
+                $permisos[$mod["mo_nombre"]] = array_unique($permisos[$mod["mo_nombre"]]);
             }
         }
 
-        // ===============================================
-        // 4️⃣ Construir el payload del JWT
-        // ===============================================
+        // ============================================================
+        // 5. GENERAR JWT
+        // ============================================================
         $payload = [
             "userId"   => $userId,
             "nombre"   => $user->usu_nombre_completo,
@@ -138,9 +142,6 @@ class AuthController extends ResourceController
             "exp"      => time() + 3600
         ];
 
-        // ===============================================
-        // 5️⃣ Generar JWT usando helper
-        // ===============================================
         $jwt = generateJWT($payload);
 
         return $this->respond([
@@ -150,4 +151,5 @@ class AuthController extends ResourceController
             "usuario" => $payload
         ]);
     }
+
 }

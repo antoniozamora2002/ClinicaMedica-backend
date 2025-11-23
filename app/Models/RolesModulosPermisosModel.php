@@ -6,15 +6,18 @@ use CodeIgniter\Model;
 
 class RolesModulosPermisosModel extends Model
 {
-    protected $DBGroup = 'seguridad'; // 🔥 Esta línea obliga a usar clinica_seguridad
+    // 🔥 Este grupo hará que CI use la base clinica_seguridad
+    protected $DBGroup = 'seguridad';
 
     protected $table      = 'roles_modulos_permisos';
     protected $primaryKey = 'rmp_id';
 
     protected $allowedFields = [
-        'rol_id',
-        'mo_id',
-        'per_id',
-        'rmp_estado'
+        'ra_id',        // ID de roles_accesos (rol + módulo)
+        'per_id',       // ID del permiso (READ, CREATE, UPDATE, DELETE)
+        'rmp_estado'    // ACTIVO / INACTIVO
     ];
+
+    // Opcional: devolver solo activos por defecto
+    protected $useSoftDeletes = false;
 }
