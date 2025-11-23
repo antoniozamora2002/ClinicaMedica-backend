@@ -7,7 +7,5 @@ services:
     restart: always
     ports:
       - "8080:80"
-    volumes:
-      - .:/var/www/html
     environment:
-      - CI_ENVIRONMENT=production
+      - CI_ENVIRONMENT=development
