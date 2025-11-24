@@ -54,4 +54,37 @@ class MedicosModel extends Model
         ->where('medicos.med_id', $id)
         ->first();
     }
+
+    public function buscarPorDni($dni)
+    {
+        return $this->db->table('personas p')
+            ->select('p.*, m.*, GROUP_CONCAT(e.esp_nombre) AS especialidades')
+            ->join('medicos m', 'm.med_id = p.per_id')
+            ->join('medicos_especialidades me', 'me.med_id = m.med_id', 'left')
+            ->join('cat_especialidad e', 'e.esp_id = me.esp_id', 'left') // 🔥 CORREGIDO
+            ->where('p.per_numero_documento', $dni)
+            ->where('m.med_estado', 'ACTIVO')
+            ->groupBy('p.per_id')
+            ->get()
+            ->getRowArray();
+    }
+
+    
+    public function buscarPorApellidos($apellido)
+    {
+        return $this->db->table('personas p')
+            ->select('p.*, m.*, GROUP_CONCAT(e.esp_nombre) AS especialidades')
+            ->join('medicos m', 'm.med_id = p.per_id')
+            ->join('medicos_especialidades me', 'me.med_id = m.med_id', 'left')
+            ->join('cat_especialidad e', 'e.esp_id = me.esp_id', 'left') // 🔥 CORREGIDO
+            ->like('p.per_apellido_paterno', $apellido)
+            ->orLike('p.per_apellido_materno', $apellido)
+            ->where('m.med_estado', 'ACTIVO')
+            ->groupBy('p.per_id')
+            ->get()
+            ->getResultArray();
+    }
+
+    
+
 }

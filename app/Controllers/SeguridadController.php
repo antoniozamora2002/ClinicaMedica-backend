@@ -246,6 +246,21 @@ class SeguridadController extends ResourceController
             "rol_removido" => $rol_id
         ]);
     }
+    public function listarUsuarios()
+    {
+        $db = \Config\Database::connect('seguridad');
+
+        $usuarios = $db->table('usuarios')
+            ->select('usu_id, usu_login, usu_nombre_completo, usu_correo, usu_estado, usu_creado_en')
+            ->where('usu_estado', 'ACTIVO')
+            ->get()
+            ->getResult();
+
+        return $this->respond([
+            "status" => 200,
+            "usuarios" => $usuarios
+        ]);
+    }
 
 
 }

@@ -20,26 +20,29 @@ $routes->group('seguridad', function($routes) {
     // === ROLES ===
     $routes->get('roles', 'SeguridadController::listarRoles');
 
-    // === ACCESOS (ROL → MODULOS) ===
+    // === MODULOS DEL ROL ===
     $routes->get('roles/(:num)/accesos', 'SeguridadController::listarAccesosRol/$1');
+    $routes->post('roles/(:num)/accesos', 'SeguridadController::asignarModuloRol/$1');
+    $routes->delete('accesos/(:num)', 'SeguridadController::quitarModulo/$1');
 
-    // === PERMISOS POR ACCESO (ra_id) ===
+    // === PERMISOS POR ACCESO ===
     $routes->get('accesos/(:num)/permisos', 'SeguridadController::permisosPorAcceso/$1');
-
-    // === ASIGNAR PERMISOS A UN ACCESO ===
-    $routes->post('accesos/(:num)/permisos', 'SeguridadController::asignarPermisosRol/$1');
+    $routes->post('accesos/(:num)/permisos', 'SeguridadController::asignarPermisoAcceso/$1');
+    $routes->delete('accesos/permisos/(:num)', 'SeguridadController::quitarPermiso/$1');
 
     // === USUARIOS-ROLES ===
     $routes->get('usuarios/(:num)/roles', 'SeguridadController::rolesPorUsuario/$1');
     $routes->post('usuarios/(:num)/roles', 'SeguridadController::asignarRolesUsuario/$1');
-
-    // === PERMISOS FINALES DEL USUARIO ===
-    $routes->get('usuarios/(:num)/permisos', 'SeguridadController::permisosPorUsuario/$1');
-
-    //Quitar rol a un usuario
     $routes->post('usuarios/(:num)/roles/quitar', 'SeguridadController::quitarRolUsuario/$1');
 
+    // === PERMISOS FINALES ===
+    $routes->get('usuarios/(:num)/permisos', 'SeguridadController::permisosPorUsuario/$1');
+
+    $routes->get('usuarios', 'SeguridadController::listarUsuarios');
+
+
 });
+
 
 
 // Rutas protegidas por JWT
@@ -55,11 +58,15 @@ $routes->group('pacientes', ['filter' => 'jwt'], function($routes){
 
 // Rutas de médicos
 $routes->group('medicos', ['filter' => 'jwt'], function($routes){
-    $routes->get('/', 'MedicosController::index');         // Listar médicos
-    $routes->post('/', 'MedicosController::create');       // Crear médico
-    $routes->get('(:num)', 'MedicosController::show/$1');   // Obtener médico por ID
-    $routes->put('(:num)', 'MedicosController::update/$1'); // Actualizar médico
-    $routes->delete('(:num)', 'MedicosController::delete/$1'); // Eliminar médico
+
+    $routes->get('/', 'MedicosController::index');
+    $routes->post('/', 'MedicosController::create');
+    $routes->get('buscar-dni', 'MedicosController::buscarPorDni');
+    $routes->get('buscar-apellidos', 'MedicosController::buscarPorApellidos');
+    $routes->get('(:num)', 'MedicosController::show/$1');
+    $routes->put('(:num)', 'MedicosController::update/$1');
+    $routes->delete('(:num)', 'MedicosController::delete/$1');
+
 });
 
 // Rutas de consultas

@@ -6,6 +6,7 @@ use CodeIgniter\Model;
 
 class EspecialidadesModel extends Model
 {
+    
     protected $table      = 'cat_especialidad';
     protected $primaryKey = 'esp_id';
 
