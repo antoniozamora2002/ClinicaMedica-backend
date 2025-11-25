@@ -9,7 +9,6 @@ class TriajeController extends ResourceController
 {
     protected $format = 'json';
 
-    // REGISTRAR TRIAJE
     public function create()
     {
         if (!userCan($this->request, 'TRIAJE', 'CREATE'))
@@ -18,22 +17,28 @@ class TriajeController extends ResourceController
         $json = $this->request->getJSON(true);
 
         $model = new TriajeModel();
+
+        // Insertar triaje
         $model->insert($json);
+        $triId = $model->getInsertID();
+
+        // Obtener triaje completo (triaje + paciente + persona)
+        $triaje = $model->getTriajeCompleto($triId);
 
         return $this->respondCreated([
-            "message" => "Triaje registrado",
-            "tri_id"  => $model->getInsertID()
+            "message" => "Triaje registrado correctamente",
+            "tri_id"  => $triId,
+            "data"    => $triaje
         ]);
     }
 
-    // OBTENER TRIAJE POR CONSULTA
-    public function show($conId = null)
+    public function show($id = null)
     {
         if (!userCan($this->request, 'TRIAJE', 'READ'))
             return $this->failForbidden("No tienes permiso.");
 
         $model = new TriajeModel();
-        $data = $model->getTriajePorConsulta($conId);
+        $data = $model->getTriajeCompleto($id);
 
         if (!$data)
             return $this->failNotFound("Triaje no encontrado.");

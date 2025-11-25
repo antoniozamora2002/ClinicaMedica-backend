@@ -91,27 +91,64 @@ class MedicosController extends ResourceController
     // ============================================
     public function create()
     {
-        if (!userCan($this->request, 'MEDICOS', 'CREATE'))
-            return $this->failForbidden("No puedes registrar médicos.");
+        if (!userCan($this->request, 'PACIENTES', 'CREATE'))
+            return $this->failForbidden("No puedes registrar pacientes.");
 
         $json = $this->request->getJSON(true);
 
-        // ================================
-        // 0. Validar duplicado por DNI
-        // ================================
+        if (!$json)
+            return $this->failValidationErrors("El JSON enviado es inválido o está vacío.");
+
         $pers = new PersonasModel();
 
-        $existe = $pers->where([
+        // =====================================================================
+        // 1. VERIFICAR SI YA EXISTE UNA PERSONA CON ESE DOCUMENTO
+        // =====================================================================
+        $persona = $pers->where([
             'per_tipo_documento_id' => $json['tipo_documento_id'],
             'per_numero_documento'  => $json['numero_documento']
         ])->first();
 
-        if ($existe)
-            return $this->failResourceExists("Ya existe una persona con este número de documento.");
+        if ($persona) {
 
-        // ================================
-        // 1. Registrar PERSONA
-        // ================================
+            $perId = $persona['per_id'];
+
+            // =================================================================
+            // 1.1 SI YA EXISTE, VERIFICAR SI YA ES PACIENTE
+            // =================================================================
+            $pacModel = new PacientesModel();
+            $pacExist = $pacModel->find($perId);
+
+            if ($pacExist) {
+                return $this->failResourceExists(
+                    "Esta persona ya está registrada como paciente."
+                );
+            }
+
+            // =================================================================
+            // 1.2 CREAR PACIENTE PARA ESA PERSONA (MÉDICO o USUARIO EXISTENTE)
+            // =================================================================
+            $pacModel->insert([
+                'pac_id'                    => $perId,
+                'pac_ubigeo_nacimiento'     => $json['ubigeo_nacimiento'] ?? null,
+                'pac_ubigeo_actual'         => $json['ubigeo_actual'] ?? null,
+                'pac_direccion'             => $json['direccion'] ?? null,
+                'pac_celular_emergencia'    => $json['celular_emergencia'],
+                'pac_nombre_emergencia'     => $json['nombre_emergencia'],
+                'pac_parentesco_emergencia' => $json['parentesco_emergencia'],
+                'pac_ocupacion'             => $json['ocupacion'],
+                'pac_estado'                => 'ACTIVO'
+            ]);
+
+            return $this->respondCreated([
+                'message' => 'Paciente registrado correctamente usando persona existente.',
+                'pac_id'  => $perId
+            ]);
+        }
+
+        // =====================================================================
+        // 2. SI NO EXISTE PERSONA, CREAR PERSONA + PACIENTE (flujo normal)
+        // =====================================================================
         $perId = $pers->insert([
             'per_tipo_documento_id' => $json['tipo_documento_id'],
             'per_numero_documento'  => $json['numero_documento'],
@@ -130,46 +167,24 @@ class MedicosController extends ResourceController
         if (!$perId)
             return $this->failServerError("Error al registrar la persona.");
 
-        // ================================
-        // 2. Registrar MÉDICO
-        // ================================
-        $medicosModel = new MedicosModel();
-
-        $medicosModel->insert([
-            'med_id'             => $perId,
-            'med_profesion'      => $json['profesion'],
-            'med_colegiatura'    => $json['colegiatura'],
-            'med_habilitacion'   => $json['habilitacion'],
-            'med_cargo'          => $json['cargo'],
-            'med_otros_estudios' => $json['otros_estudios'],
-            'med_estado'         => 'ACTIVO',
-            'usu_id'             => $json['usu_id'] ?? null
+        $pac = new PacientesModel();
+        $pac->insert([
+            'pac_id'                    => $perId,
+            'pac_ubigeo_nacimiento'     => $json['ubigeo_nacimiento'] ?? null,
+            'pac_ubigeo_actual'         => $json['ubigeo_actual'] ?? null,
+            'pac_direccion'             => $json['direccion'] ?? null,
+            'pac_celular_emergencia'    => $json['celular_emergencia'],
+            'pac_nombre_emergencia'     => $json['nombre_emergencia'],
+            'pac_parentesco_emergencia' => $json['parentesco_emergencia'],
+            'pac_ocupacion'             => $json['ocupacion'],
+            'pac_estado'                => 'ACTIVO'
         ]);
-
-        // ================================
-        // 3. Registrar ESPECIALIDADES
-        // ================================
-        if (!empty($json['especialidades'])) {
-            $db = \Config\Database::connect();
-
-            $batch = [];
-            foreach ($json['especialidades'] as $espId) {
-                $batch[] = [
-                    'med_id'    => $perId,
-                    'esp_id'    => $espId,
-                    'me_estado' => 'ACTIVO'
-                ];
-            }
-
-            $db->table('medicos_especialidades')->insertBatch($batch);
-        }
 
         return $this->respondCreated([
-            'message' => 'Médico registrado exitosamente',
-            'med_id'  => $perId
+            'message' => 'Paciente registrado exitosamente',
+            'pac_id'  => $perId
         ]);
     }
-
     // ============================================
     // ACTUALIZAR MÉDICO
     // ============================================
