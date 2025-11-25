@@ -211,4 +211,56 @@ class SeguridadController extends ResourceController
             "permisos" => $permisos
         ]);
     }
+
+// ======================================
+// QUITAR ROL A USUARIO (Soft Delete)
+// ======================================
+    public function quitarRolUsuario($usu_id)
+    {
+        $json = $this->request->getJSON(true);
+
+        if (!isset($json['rol_id']))
+            return $this->failValidationError("Debe enviar rol_id.");
+
+        $rol_id = $json['rol_id'];
+        $model = new UsuariosRolesModel();
+
+        // Buscar asignación
+        $asignado = $model
+            ->where('usu_id', $usu_id)
+            ->where('rol_id', $rol_id)
+            ->where('ur_estado', 'ACTIVO')
+            ->first();
+
+        if (!$asignado)
+            return $this->failNotFound("Este rol no está asignado al usuario.");
+
+        // Marcar como INACTIVO
+        $model->update($asignado['ur_id'], [
+            'ur_estado' => 'INACTIVO'
+        ]);
+
+        return $this->respondDeleted([
+            "message" => "Rol removido correctamente.",
+            "usuario" => $usu_id,
+            "rol_removido" => $rol_id
+        ]);
+    }
+    public function listarUsuarios()
+    {
+        $db = \Config\Database::connect('seguridad');
+
+        $usuarios = $db->table('usuarios')
+            ->select('usu_id, usu_login, usu_nombre_completo, usu_correo, usu_estado, usu_creado_en')
+            ->where('usu_estado', 'ACTIVO')
+            ->get()
+            ->getResult();
+
+        return $this->respond([
+            "status" => 200,
+            "usuarios" => $usuarios
+        ]);
+    }
+
+
 }

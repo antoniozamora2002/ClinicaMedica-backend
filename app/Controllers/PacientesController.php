@@ -22,6 +22,53 @@ class PacientesController extends ResourceController
         return $this->respond($model->getPacientes());
     }
 
+        // ============================================================
+    // BUSCAR POR DOCUMENTO
+    // ============================================================
+    public function buscarPorDocumento()
+    {
+        if (!userCan($this->request, 'PACIENTES', 'READ'))
+            return $this->failForbidden("No tienes permiso para buscar pacientes.");
+
+        $numero = $this->request->getGet('numero');
+
+        if (!$numero)
+            return $this->failValidationErrors("Debes enviar ?numero= valor.");
+
+        $model = new PacientesModel();
+        $pac = $model->buscarPorDocumento($numero);
+
+        if (!$pac)
+            return $this->failNotFound("No se encontró paciente con ese documento.");
+
+        return $this->respond($pac);
+    }
+
+
+    // ============================================================
+    // BUSCAR POR APELLIDOS
+    // ============================================================
+    public function buscarPorApellidos()
+    {
+        if (!userCan($this->request, 'PACIENTES', 'READ'))
+            return $this->failForbidden("No tienes permiso para buscar pacientes.");
+
+        $apePat = $this->request->getGet('paterno');
+        $apeMat = $this->request->getGet('materno');
+
+        if (!$apePat && !$apeMat)
+            return $this->failValidationErrors("Debes enviar ?paterno= o ?materno=");
+
+        $model = new PacientesModel();
+        $data = $model->buscarPorApellidos($apePat, $apeMat);
+
+        if (!$data)
+            return $this->failNotFound("No se encontraron coincidencias.");
+
+        return $this->respond($data);
+    }
+
+
     // ============================================================
     // OBTENER POR ID
     // ============================================================

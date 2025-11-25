@@ -23,4 +23,6 @@ class PersonasModel extends Model
         'per_nacionalidad',
         'per_estado'
     ];
+
+    
 }

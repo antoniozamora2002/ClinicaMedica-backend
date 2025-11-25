@@ -40,6 +40,52 @@ class MedicosController extends ResourceController
         return $this->respond($data);
     }
 
+        // ============================================
+    // BUSCAR POR DNI
+    // ============================================
+    public function buscarPorDni()
+    {
+        if (!userCan($this->request, 'MEDICOS', 'READ'))
+            return $this->failForbidden("No tienes permiso para buscar médicos.");
+
+        $dni = $this->request->getGet('dni');
+
+        if (!$dni)
+            return $this->failValidationErrors("Debe enviar ?dni=xxxxx");
+
+        $model = new MedicosModel();
+        $data = $model->buscarPorDni($dni);
+
+        if (!$data)
+            return $this->failNotFound("No se encontró un médico con este DNI.");
+
+        return $this->respond($data);
+    }
+
+    // ============================================
+    // BUSCAR POR APELLIDOS
+    // ============================================
+    public function buscarPorApellidos()
+    {
+        if (!userCan($this->request, 'MEDICOS', 'READ'))
+            return $this->failForbidden("No tienes permiso para buscar médicos.");
+
+        $paterno = $this->request->getGet('paterno');
+        $materno = $this->request->getGet('materno');
+
+        if (!$paterno)
+            return $this->failValidationErrors("Debe enviar ?paterno=XXXX");
+
+        $model = new MedicosModel();
+        $data = $model->buscarPorApellidos($paterno, $materno);
+
+        if (!$data)
+            return $this->failNotFound("No se encontraron médicos con esos apellidos.");
+
+        return $this->respond($data);
+    }
+
+
     // ============================================
     // REGISTRAR MÉDICO
     // ============================================
