@@ -96,7 +96,7 @@ $routes->group('historias-clinicas', ['filter' => 'jwt'], function($routes){
 });
 
 
-
+//
 // Rutas de triaje
 $routes->group('triaje', ['filter' => 'jwt'], function($routes){
     $routes->post('/', 'TriajeController::create'); // Registrar triaje
