@@ -8,20 +8,11 @@ class PacientesModel extends Model
 {
     protected $table      = 'pacientes';
     protected $primaryKey = 'pac_id';
+    protected $useAutoIncrement = false;
 
-    // Importante: pac_id NO es autoincrement
-    protected $useAutoIncrement = false; 
-
-    protected $returnType = 'array';
 
     protected $allowedFields = [
         'pac_id',
-        'pac_lugar_nac_dep',
-        'pac_lugar_nac_prov',
-        'pac_lugar_nac_dist',
-        'pac_departamento',
-        'pac_provincia',
-        'pac_distrito',
         'pac_direccion',
         'pac_celular_emergencia',
         'pac_nombre_emergencia',
@@ -30,59 +21,45 @@ class PacientesModel extends Model
         'pac_estado'
     ];
 
-    // ===================================================
-    // LISTAR PACIENTES ACTIVOS
-    // ===================================================
+    // -------------------------
+    // MÉTODOS PERSONALIZADOS
+    // -------------------------
+
     public function getPacientes()
     {
-        return $this->select('personas.*, pacientes.*')
+        return $this->select('pacientes.*, personas.*')
             ->join('personas', 'personas.per_id = pacientes.pac_id')
-            ->where('personas.per_estado', 'ACTIVO')
             ->where('pacientes.pac_estado', 'ACTIVO')
             ->findAll();
     }
 
-    // ===================================================
-    // OBTENER PACIENTE POR ID
-    // ===================================================
     public function getPacienteById($id)
     {
-        return $this->select('personas.*, pacientes.*')
+        return $this->select('pacientes.*, personas.*')
             ->join('personas', 'personas.per_id = pacientes.pac_id')
             ->where('pacientes.pac_id', $id)
             ->first();
     }
 
-    // ============================================
-    // BUSCAR POR DOCUMENTO
-    // ============================================
-    public function buscarPorDocumento($numeroDocumento)
+    public function buscarPorDocumento($numero)
     {
-        return $this->select('personas.*, pacientes.*')
+        return $this->select('pacientes.*, personas.*')
             ->join('personas', 'personas.per_id = pacientes.pac_id')
-            ->where('personas.per_numero_documento', $numeroDocumento)
-            ->where('pacientes.pac_estado', 'ACTIVO')
+            ->where('personas.per_numero_documento', $numero)
             ->first();
     }
 
-    // ============================================
-    // BUSCAR POR APELLIDOS (PARCIAL O COMPLETO)
-    // ============================================
-    public function buscarPorApellidos($apellidoPaterno = null, $apellidoMaterno = null)
+    public function buscarPorApellidos($paterno, $materno)
     {
-        $builder = $this->select('personas.*, pacientes.*')
-            ->join('personas', 'personas.per_id = pacientes.pac_id')
-            ->where('pacientes.pac_estado', 'ACTIVO');
+        $this->select('pacientes.*, personas.*')
+            ->join('personas', 'personas.per_id = pacientes.pac_id');
 
-        if ($apellidoPaterno) {
-            $builder->like('personas.per_apellido_paterno', $apellidoPaterno);
-        }
+        if ($paterno)
+            $this->like('personas.per_apellido_paterno', $paterno);
 
-        if ($apellidoMaterno) {
-            $builder->like('personas.per_apellido_materno', $apellidoMaterno);
-        }
+        if ($materno)
+            $this->like('personas.per_apellido_materno', $materno);
 
-        return $builder->findAll();
+        return $this->findAll();
     }
-
 }
