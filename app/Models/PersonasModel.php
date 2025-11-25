@@ -21,8 +21,11 @@ class PersonasModel extends Model
         'per_correo',
         'per_estado_civil',
         'per_nacionalidad',
+
+        // Nuevos
+        'per_ubigeo_nacimiento',
+        'per_ubigeo_actual',
+
         'per_estado'
     ];
-
-    
 }
