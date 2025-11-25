@@ -76,10 +76,26 @@ $routes->group('consultas', ['filter' => 'jwt'], function($routes){
     $routes->post('/', 'ConsultasController::create');     // Registrar consulta
 });
 
-// Rutas de historia clínica
+// Rutas de historias clínicas
 $routes->group('historias-clinicas', ['filter' => 'jwt'], function($routes){
-    $routes->get('(:num)', 'HistoriaClinicaController::show/$1'); // Obtener historia clínica por paciente
+
+    // Obtener historia por ID de paciente
+    $routes->get('paciente/(:num)', 'HistoriaClinicaController::show/$1');
+
+    // Crear historia clínica
+    $routes->post('/', 'HistoriaClinicaController::create');
+
+    // Actualizar historia clínica (his_id)
+    $routes->put('(:num)', 'HistoriaClinicaController::update/$1');
+
+    // Listar versiones de una historia clínica
+    $routes->get('(:num)/versiones', 'HistoriaClinicaController::versiones/$1');
+
+    // Obtener una versión específica
+    $routes->get('version/(:num)', 'HistoriaClinicaController::version/$1');
 });
+
+
 
 // Rutas de triaje
 $routes->group('triaje', ['filter' => 'jwt'], function($routes){
