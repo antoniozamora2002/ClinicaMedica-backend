@@ -8,12 +8,13 @@ class ConsultasModel extends Model
 {
     protected $table = 'consultas';
     protected $primaryKey = 'con_id';
+    protected $returnType = 'array';
 
     protected $allowedFields = [
-        'his_id',
+        'tri_id',
         'med_id',
+        'esp_id',
         'tip_id',
-        'ase_id',
         'con_fecha_consulta',
         'con_tipo_servicio',
         'con_area',
@@ -38,18 +39,38 @@ class ConsultasModel extends Model
         'con_cie10_principal'
     ];
 
+    // ==============================================
+    // CONSULTAS POR PACIENTE
+    // ==============================================
     public function getConsultasPorPaciente($pacId)
     {
-        return $this->select('consultas.*, historias_clinicas.his_codigo, personas.*')
-            ->join('historias_clinicas', 'historias_clinicas.his_id = consultas.his_id')
-            ->join('pacientes', 'pacientes.pac_id = historias_clinicas.pac_id')
-            ->join('personas', 'personas.per_id = pacientes.pac_id')
-            ->where('pacientes.pac_id', $pacId)
+        return $this->select("consultas.*, triaje.*, pacientes.*, personas.*")
+            ->join("triaje", "triaje.tri_id = consultas.tri_id")
+            ->join("pacientes", "pacientes.pac_id = triaje.pac_id")
+            ->join("personas", "personas.per_id = pacientes.pac_id")
+            ->where("pacientes.pac_id", $pacId)
+            ->orderBy("consultas.con_fecha_consulta", "DESC")
             ->findAll();
     }
 
-    public function getConsultaById($conId)
+    // ==============================================
+    // CONSULTA POR ID
+    // ==============================================
+    public function getConsultaById($id)
     {
-        return $this->where('con_id', $conId)->first();
+        return $this->select("consultas.*, triaje.*, pacientes.*, personas.*")
+            ->join("triaje", "triaje.tri_id = consultas.tri_id")
+            ->join("pacientes", "pacientes.pac_id = triaje.pac_id")
+            ->join("personas", "personas.per_id = pacientes.pac_id")
+            ->where("consultas.con_id", $id)
+            ->first();
+    }
+
+    // ==============================================
+    // VALIDAR SI EL TRIAJE YA TIENE CONSULTA
+    // ==============================================
+    public function existeConsultaParaTriaje($tri_id)
+    {
+        return $this->where("tri_id", $tri_id)->first();
     }
 }

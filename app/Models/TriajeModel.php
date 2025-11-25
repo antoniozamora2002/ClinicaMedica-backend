@@ -8,23 +8,27 @@ class TriajeModel extends Model
 {
     protected $table = 'triaje';
     protected $primaryKey = 'tri_id';
+    protected $returnType = 'array';
 
     protected $allowedFields = [
-        'con_id',
+        'pac_id',
         'usu_id',
-        'da_id',
+        'cla_id',
         'tri_peso_kg',
         'tri_talla_cm',
         'tri_presion_arterial',
         'tri_temperatura',
         'tri_frecuencia_cardiaca',
         'tri_saturacion_o2',
-        'tri_fecha_hora',
-        'tri_imc'
+        'tri_fecha_hora'
     ];
 
-    public function getTriajePorConsulta($conId)
+    public function getTriajeCompleto($triId)
     {
-        return $this->where('con_id', $conId)->first();
+        return $this->select("triaje.*, pacientes.*, personas.*")
+            ->join("pacientes", "pacientes.pac_id = triaje.pac_id")
+            ->join("personas", "personas.per_id = pacientes.pac_id")
+            ->where("triaje.tri_id", $triId)
+            ->first();
     }
 }

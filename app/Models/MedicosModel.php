@@ -18,50 +18,74 @@ class MedicosModel extends Model
         'med_cargo',
         'med_otros_estudios',
         'med_estado',
-        'usu_id'   // Si decides asociar el médico a un usuario
+        'usu_id'
     ];
 
-    // Obtener médico con detalles de especialidades
+    // ============================================================
+    // LISTAR MÉDICOS (SIN DUPLICADOS)
+    // ============================================================
     public function getMedicos()
     {
-        return $this->select('
-            medicos.med_id,
-            medicos.med_profesion,
-            medicos.med_colegiatura,
-            medicos.med_habilitacion,
-            medicos.med_cargo,
-            medicos.med_otros_estudios,
-            medicos.med_estado,
-            personas.per_nombres,
-            personas.per_apellido_paterno,
-            personas.per_apellido_materno,
-            personas.per_numero_documento
-        ')
-        ->join('personas', 'medicos.med_id = personas.per_id')
-        ->join('medicos_especialidades', 'medicos.med_id = medicos_especialidades.med_id', 'left')
-        ->join('cat_especialidad', 'medicos_especialidades.esp_id = cat_especialidad.esp_id', 'left')
-        ->findAll();
+        return $this->db->table('medicos m')
+            ->select("
+                m.med_id,
+                m.med_profesion,
+                m.med_colegiatura,
+                m.med_habilitacion,
+                m.med_cargo,
+                m.med_otros_estudios,
+                m.med_estado,
+
+                p.per_nombres,
+                p.per_apellido_paterno,
+                p.per_apellido_materno,
+                p.per_numero_documento,
+
+                GROUP_CONCAT(e.esp_nombre SEPARATOR ', ') AS especialidades
+            ")
+            ->join('personas p', 'p.per_id = m.med_id')
+            ->join('medicos_especialidades me', 'me.med_id = m.med_id', 'left')
+            ->join('cat_especialidad e', 'e.esp_id = me.esp_id', 'left')
+            ->groupBy('m.med_id')        // 🔥 evita duplicados por cada especialidad
+            ->orderBy('m.med_id', 'DESC')
+            ->get()
+            ->getResultArray();
     }
 
-    // Obtener médico por ID
+    // ============================================================
+    // OBTENER MÉDICO POR ID (con especialidades agrupadas)
+    // ============================================================
     public function getMedicoById($id)
     {
-        return $this->select('
-            medicos.*,
-            personas.*
-        ')
-        ->join('personas', 'medicos.med_id = personas.per_id')
-        ->where('medicos.med_id', $id)
-        ->first();
+        return $this->db->table('medicos m')
+            ->select("
+                m.*,
+                p.*,
+                GROUP_CONCAT(e.esp_nombre SEPARATOR ', ') AS especialidades
+            ")
+            ->join('personas p', 'p.per_id = m.med_id')
+            ->join('medicos_especialidades me', 'me.med_id = m.med_id', 'left')
+            ->join('cat_especialidad e', 'e.esp_id = me.esp_id', 'left')
+            ->where('m.med_id', $id)
+            ->groupBy('m.med_id')
+            ->get()
+            ->getRowArray();
     }
 
+    // ============================================================
+    // BUSCAR POR DNI
+    // ============================================================
     public function buscarPorDni($dni)
     {
         return $this->db->table('personas p')
-            ->select('p.*, m.*, GROUP_CONCAT(e.esp_nombre) AS especialidades')
+            ->select("
+                p.*,
+                m.*,
+                GROUP_CONCAT(e.esp_nombre SEPARATOR ', ') AS especialidades
+            ")
             ->join('medicos m', 'm.med_id = p.per_id')
             ->join('medicos_especialidades me', 'me.med_id = m.med_id', 'left')
-            ->join('cat_especialidad e', 'e.esp_id = me.esp_id', 'left') // 🔥 CORREGIDO
+            ->join('cat_especialidad e', 'e.esp_id = me.esp_id', 'left')
             ->where('p.per_numero_documento', $dni)
             ->where('m.med_estado', 'ACTIVO')
             ->groupBy('p.per_id')
@@ -69,22 +93,27 @@ class MedicosModel extends Model
             ->getRowArray();
     }
 
-    
+    // ============================================================
+    // BUSCAR POR APELLIDOS
+    // ============================================================
     public function buscarPorApellidos($apellido)
     {
         return $this->db->table('personas p')
-            ->select('p.*, m.*, GROUP_CONCAT(e.esp_nombre) AS especialidades')
+            ->select("
+                p.*,
+                m.*,
+                GROUP_CONCAT(e.esp_nombre SEPARATOR ', ') AS especialidades
+            ")
             ->join('medicos m', 'm.med_id = p.per_id')
             ->join('medicos_especialidades me', 'me.med_id = m.med_id', 'left')
-            ->join('cat_especialidad e', 'e.esp_id = me.esp_id', 'left') // 🔥 CORREGIDO
-            ->like('p.per_apellido_paterno', $apellido)
-            ->orLike('p.per_apellido_materno', $apellido)
+            ->join('cat_especialidad e', 'e.esp_id = me.esp_id', 'left')
+            ->groupStart()
+                ->like('p.per_apellido_paterno', $apellido)
+                ->orLike('p.per_apellido_materno', $apellido)
+            ->groupEnd()
             ->where('m.med_estado', 'ACTIVO')
             ->groupBy('p.per_id')
             ->get()
             ->getResultArray();
     }
-
-    
-
 }
