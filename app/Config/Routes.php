@@ -48,6 +48,7 @@ $routes->group('seguridad', function($routes) {
 // Rutas protegidas por JWT
 $routes->group('pacientes', ['filter' => 'jwt'], function($routes){
     $routes->get('/', 'PacientesController::index');       // Listar pacientes
+    $routes->get('(:num)', 'PacientesController::show/$1'); // ⭐ BUSCAR POR ID
     $routes->post('/', 'PacientesController::create');     // Crear paciente
     $routes->put('(:num)', 'PacientesController::update/$1'); // Actualizar paciente
     $routes->delete('(:num)', 'PacientesController::delete/$1'); // Eliminar paciente
