@@ -97,23 +97,50 @@ class PacientesController extends ResourceController
         if (!$json)
             return $this->failValidationErrors("El JSON enviado es inválido o está vacío.");
 
-        // ====================================================
-        // VALIDAR DOCUMENTO DUPLICADO
-        // ====================================================
         $pers = new PersonasModel();
+        $pac  = new PacientesModel();
 
-        $existe = $pers->where([
+        // ====================================================
+        // 1. VALIDAR SI LA PERSONA YA EXISTE
+        // ====================================================
+        $persona = $pers->where([
             'per_tipo_documento_id' => $json['tipo_documento_id'],
             'per_numero_documento'  => $json['numero_documento']
         ])->first();
 
-        if ($existe) {
-            return $this->failResourceExists("El número de documento ya se encuentra registrado.");
+        if ($persona) {
+            // ====================================================
+            // 1.1 SI YA EXISTE LA PERSONA → SOLO REGISTRAR PACIENTE
+            // ====================================================
+
+            // Verificar si ya es paciente también
+            $yaEsPaciente = $pac->find($persona['per_id']);
+
+            if ($yaEsPaciente) {
+                return $this->failResourceExists("Esta persona ya está registrada como paciente.");
+            }
+
+            // Crear nuevo PACIENTE usando el mismo per_id
+            $pac->insert([
+                'pac_id'                     => $persona['per_id'],
+                'pac_direccion'              => $json['direccion'] ?? null,
+                'pac_celular_emergencia'     => $json['celular_emergencia'] ?? null,
+                'pac_nombre_emergencia'      => $json['nombre_emergencia'] ?? null,
+                'pac_parentesco_emergencia'  => $json['parentesco_emergencia'] ?? null,
+                'pac_ocupacion'              => $json['ocupacion'] ?? null,
+                'pac_estado'                 => 'ACTIVO'
+            ]);
+
+            return $this->respondCreated([
+                'message' => 'Paciente registrado exitosamente (persona ya existía)',
+                'pac_id'  => $persona['per_id']
+            ]);
         }
 
         // ====================================================
-        // 1. Crear PERSONA
+        // 2. SI NO EXISTE → CREAR PERSONA Y PACIENTE
         // ====================================================
+
         $perId = $pers->insert([
             'per_tipo_documento_id'  => $json['tipo_documento_id'],
             'per_numero_documento'   => $json['numero_documento'],
@@ -134,19 +161,14 @@ class PacientesController extends ResourceController
         if (!$perId)
             return $this->failServerError("Error al registrar la persona.");
 
-        // ====================================================
-        // 2. Crear PACIENTE (con nueva estructura)
-        // ====================================================
-        $pac = new PacientesModel();
-
         $pac->insert([
-            'pac_id'                 => $perId,
-            'pac_direccion'          => $json['direccion'] ?? null,
-            'pac_celular_emergencia' => $json['celular_emergencia'],
-            'pac_nombre_emergencia'  => $json['nombre_emergencia'],
-            'pac_parentesco_emergencia' => $json['parentesco_emergencia'],
-            'pac_ocupacion'          => $json['ocupacion'],
-            'pac_estado'             => 'ACTIVO'
+            'pac_id'                     => $perId,
+            'pac_direccion'              => $json['direccion'] ?? null,
+            'pac_celular_emergencia'     => $json['celular_emergencia'] ?? null,
+            'pac_nombre_emergencia'      => $json['nombre_emergencia'] ?? null,
+            'pac_parentesco_emergencia'  => $json['parentesco_emergencia'] ?? null,
+            'pac_ocupacion'              => $json['ocupacion'] ?? null,
+            'pac_estado'                 => 'ACTIVO'
         ]);
 
         return $this->respondCreated([
