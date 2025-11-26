@@ -202,7 +202,7 @@ class MedicosController extends ResourceController
             ];
         }
 
-        $db->table('medicos_especialidad')->insertBatch($batch);
+        $db->table('medicos_especialidades')->insertBatch($batch);
     }
 
 
