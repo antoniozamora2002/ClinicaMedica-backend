@@ -92,38 +92,36 @@ class MedicosController extends ResourceController
     // ============================================
     public function create()
     {
-        // 👇 Permiso correcto: MEDICOS, no PACIENTES
         if (!userCan($this->request, 'MEDICOS', 'CREATE'))
             return $this->failForbidden("No puedes registrar médicos.");
-
+    
         $json = $this->request->getJSON(true);
-
         if (!$json)
             return $this->failValidationErrors("El JSON enviado es inválido o está vacío.");
-
+    
         $modelPer = new PersonasModel();
         $modelMed = new MedicosModel();
-
+        $db = \Config\Database::connect();
+    
         // ==========================================================
-        // 1. VALIDAR SI LA PERSONA YA EXISTE (POR TIPO + NRO DOC)
+        // 1. VALIDAR SI LA PERSONA YA EXISTE
         // ==========================================================
         $persona = $modelPer->where([
             'per_tipo_documento_id' => $json['tipo_documento_id'],
             'per_numero_documento'  => $json['numero_documento']
         ])->first();
-
-        // ---------- CASO 1: LA PERSONA YA EXISTE ----------
+    
+        // Si PERSONA ya existe
         if ($persona) {
-
+    
             $perId = $persona['per_id'];
-
+    
             // Verificar si ya es médico
-            $existeMedico = $modelMed->find($perId);
-            if ($existeMedico) {
+            if ($modelMed->find($perId)) {
                 return $this->failResourceExists("Esta persona ya está registrada como médico.");
             }
-
-            // Crear médico usando la persona existente
+    
+            // Insertar MÉDICO usando persona existente
             $modelMed->insert([
                 'med_id'             => $perId,
                 'med_profesion'      => $json['profesion'],
@@ -134,15 +132,21 @@ class MedicosController extends ResourceController
                 'usu_id'             => $json['usu_id'],
                 'med_estado'         => 'ACTIVO'
             ]);
-
+    
+            // Registrar ESPECIALIDADES si vienen
+            if (!empty($json['especialidades']) && is_array($json['especialidades'])) {
+                $this->registrarEspecialidades($db, $perId, $json['especialidades']);
+            }
+    
             return $this->respondCreated([
-                "message" => "Médico registrado correctamente usando persona existente.",
+                "message" => "Médico registrado usando persona existente.",
                 "med_id"  => $perId
             ]);
         }
-
-        // ---------- CASO 2: LA PERSONA NO EXISTE ----------
-        // Crear PERSONA
+    
+        // ==========================================================
+        // 2. PERSONA NO EXISTE → CREAR PERSONA + MÉDICO
+        // ==========================================================
         $perId = $modelPer->insert([
             'per_tipo_documento_id' => $json['tipo_documento_id'],
             'per_numero_documento'  => $json['numero_documento'],
@@ -159,11 +163,11 @@ class MedicosController extends ResourceController
             'per_ubigeo_actual'     => $json['ubigeo_actual'] ?? null,
             'per_estado'            => 'ACTIVO'
         ]);
-
+    
         if (!$perId)
             return $this->failServerError("Error al registrar la persona.");
-
-        // Crear MÉDICO
+    
+        // Registrar MÉDICO
         $modelMed->insert([
             'med_id'             => $perId,
             'med_profesion'      => $json['profesion'],
@@ -174,12 +178,18 @@ class MedicosController extends ResourceController
             'usu_id'             => $json['usu_id'],
             'med_estado'         => 'ACTIVO'
         ]);
-
+    
+        // Registrar ESPECIALIDADES
+        if (!empty($json['especialidades']) && is_array($json['especialidades'])) {
+            $this->registrarEspecialidades($db, $perId, $json['especialidades']);
+        }
+    
         return $this->respondCreated([
             "message" => "Médico registrado exitosamente",
             "med_id"  => $perId
         ]);
     }
+    
 
 
     // ============================================
