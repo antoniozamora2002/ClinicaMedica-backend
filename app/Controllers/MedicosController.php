@@ -190,6 +190,21 @@ class MedicosController extends ResourceController
         ]);
     }
     
+    private function registrarEspecialidades($db, $medId, $especialidades)
+    {
+        $batch = [];
+
+        foreach ($especialidades as $espId) {
+            $batch[] = [
+                'med_id'    => $medId,
+                'esp_id'    => $espId,
+                'me_estado' => 'ACTIVO'
+            ];
+        }
+
+        $db->table('medicos_especialidad')->insertBatch($batch);
+    }
+
 
 
     // ============================================
